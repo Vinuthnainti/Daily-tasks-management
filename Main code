@@ -1,0 +1,132 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define FILENAME "weekssss_results.txt"
+
+void loadResults(int results[7]) {
+    FILE *file = fopen(FILENAME, "r");
+    if (file == NULL) {
+        for (int i = 0; i < 7; i++) results[i] = 0; 
+        return;
+    }
+    for (int i = 0; i < 7; i++) fscanf(file, "%d", &results[i]);
+    fclose(file);
+}
+
+void saveResults(int results[7]) {
+    FILE *file = fopen(FILENAME, "w");
+    if (file == NULL) {
+        printf("Error: Could not save results to file.\n");
+        return;
+    }
+    for (int i = 0; i < 7; i++) fprintf(file, "%d\n", results[i]);
+    fclose(file);
+}
+
+int getDayIndex(const char *day) {
+    const char *days[] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
+    for (int i = 0; i < 7; i++) {
+        if (strcasecmp(day, days[i]) == 0) {
+            return i;
+        }
+    }
+    return -1; 
+}
+
+void displayPreviousDays(const char *days[], int results[7]) {
+    printf("\nProgress for completed days so far:\n");
+    for (int i = 0; i < 7; i++) {
+        if (results[i] > 0) {
+            printf("%s: %d%% completed\n", days[i], results[i]);
+        }
+    }
+}
+
+void resetWeek(int results[7]) {
+    for (int i = 0; i < 7; i++) results[i] = 0; // Reset results
+    saveResults(results);
+    printf("New week started! All results have been reset.\n");
+}
+
+int main() {
+    const char *days[] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
+    char tasks[100][100]; 
+    int completed[7][100] = {0}; 
+    int results[7] = {0}; 
+    int taskCount = 0;
+
+    loadResults(results);
+
+    printf("Enter tasks for the week (these will be repeated for all days):\n");
+    printf("How many tasks do you want to add? ");
+    scanf("%d", &taskCount);
+    getchar(); 
+
+    for (int i = 0; i < taskCount; i++) {
+        printf("Enter task %d: ", i + 1);
+        fgets(tasks[i], 100, stdin);
+        tasks[i][strcspn(tasks[i], "\n")] = 0; 
+    }
+
+    int currentDayIndex = -1;
+    while (1) {
+        if (currentDayIndex == -1) {
+            printf("\nEnter today's day (e.g., Sunday to Saturday): ");
+            char currentDay[20];
+            scanf("%s", currentDay);
+
+            currentDayIndex = getDayIndex(currentDay);
+            if (currentDayIndex == -1) {
+                printf("Invalid day entered. Please try again.\n");
+                continue;
+            }
+        }
+
+        if (results[currentDayIndex] > 0) {
+            printf("Tasks for %s are already recorded with %d%% completion.\n", days[currentDayIndex], results[currentDayIndex]);
+        } else {
+            for (int i = 0; i < taskCount; i++) {
+                completed[currentDayIndex][i] = 0;
+            }
+
+            int count = 0;
+            for (int i = 0; i < taskCount; i++) {
+                printf("Did you complete task %d (%s)? (y/n): ", i + 1, tasks[i]);
+                char ch;
+                scanf(" %c", &ch);
+                if (ch == 'y' || ch == 'Y') {
+                    completed[currentDayIndex][i] = 1;
+                    count++;
+                }
+            }
+            results[currentDayIndex] = (count * 100) / taskCount;
+            printf("Completion for %s: %d%%\n", days[currentDayIndex], results[currentDayIndex]);
+
+            saveResults(results);
+        }
+
+        printf("\nOptions:\n");
+        printf("1. Move to the next day's tasks\n");
+        printf("2. View progress for all completed days\n");
+        printf("3. Exit the program\n");
+        printf("Choose an option: ");
+        int choice;
+        scanf("%d", &choice);
+
+        if (choice == 1) {
+            
+            currentDayIndex = (currentDayIndex + 1) % 7;
+            printf("Next day: %s\n", days[currentDayIndex]);
+        } else if (choice == 2) {
+            displayPreviousDays(days, results);
+        } else if (choice == 3) {
+            printf("Exiting the program. Goodbye!\n");
+            break;
+        } else {
+            printf("Invalid choice. Please try again.\n");
+        }
+    }
+
+    return 0;
+}
